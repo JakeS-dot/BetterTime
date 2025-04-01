@@ -1,7 +1,6 @@
 from datetime import datetime
 import hashlib
 import os
-import sys
 from rauth import OAuth2Service
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -12,6 +11,7 @@ CORS(app)  # Enable CORS for all routes
 
 load_dotenv('local.env')
 
+
 @app.route('/')
 def hello_world():
     return 'Hello World!'
@@ -20,7 +20,7 @@ def hello_world():
 @app.route('/process_json', methods=['POST'])
 def process_json():
     try:
-        request_data = request.get_json()   
+        request_data = request.get_json()
         json_data = request_data['jsonData']
         day1 = request_data['day1']
         day2 = request_data['day2']
@@ -61,6 +61,7 @@ def process_json():
     except Exception as e:
         return jsonify({'error': "Flask - " + str(e)}), 400
 
+
 def get_wakatime_service():
     return OAuth2Service(
         client_id=os.environ.get("VITE_WAKA_APP_ID"),
@@ -70,28 +71,31 @@ def get_wakatime_service():
         access_token_url='https://wakatime.com/oauth/token',
         base_url='https://wakatime.com/api/v1/'
     )
- 
+
+
 @app.route("/get_access_token", methods=['POST'])
 def get_access_token():
     try:
         data = request.json
         token = data.get("token")
-        
+
         headers = {'Accept': 'application/x-www-form-urlencoded'}
-        service=get_wakatime_service()
-        session = service.get_auth_session(headers=headers, data={"code": token, 'grant-type': 'authorization-code', 'redirect_uri': 'http://localhost:5173/login'})
-        user=session.get('users/current').json()
+        service = get_wakatime_service()
+        service.get_auth_session(headers=headers, data={
+            "code": token, 'grant-type': 'authorization-code',
+            'redirect_uri': 'http://localhost:5173/login'})
         return 200
 
     except Exception as e:
         return jsonify({"error": "An error occurred", "details": str(e)}), 500
+
 
 @app.route("/get_dumps", methods=['POST'])
 def get_dumps():
     try:
         data = request.json
         access_token = data.get("token")
-        
+
         if not access_token:
             return jsonify({"error": "Missing access token"}), 400
 
@@ -113,8 +117,8 @@ def get_dumps():
 
     except Exception as e:
         return jsonify({"error": "An error occurred", "details": str(e)}), 500
-   
-    
+
+
 @app.route("/get_user_data", methods=['POST'])
 def get_udata():
     try:
@@ -122,8 +126,7 @@ def get_udata():
         token = token.get("token")
         service = get_wakatime_service()
         session = service.get_session(token)
-        user_data_url = "users/current"
-        response  = session.get("users/current")
+        response = session.get("users/current")
 
         if response.status_code == 200:
             return jsonify(response.json()), 200
@@ -134,11 +137,8 @@ def get_udata():
                            }), response.status_code
     except Exception as e:
         return jsonify({"error": "An error occurred", "details": str(e)}), 500
-                           
 
 
-
-         
 @app.route("/get_login_link")
 def login():
     try:
@@ -158,34 +158,36 @@ def login():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-@app.route("/revoke_token", methods=["POST"])
+
+@app.route("/revoke_token", methods=['POST'])
 def logout():
     try:
         data = request.get_json()
-        user_id = data.get("user_id")
+        uid = data.get("uid")
 
-        if not user_id:
-            return jsonify({"error": "Missing user_id"}), 400
+        if not uid:
+            return jsonify({"error": "User ID is required"}), 400
 
         service = get_wakatime_service()
-
         revoke_url = "https://wakatime.com/oauth/revoke"
-        payload = {
-            "client_id": os.environ.get("VITE_WAKA_APP_ID"),
-            "client_secret": os.environ.get("VITE_WAKA_APP_SECRET"),
-            "user_id": user_id,
-        }
 
         session = service.get_session()
-        response = session.post(revoke_url, data=payload)
-
+        response = session.post(
+            revoke_url,
+            data={
+                "client_id": service.client_id,
+                "client_secret": service.client_secret,
+                "user_id": uid
+            },
+            headers={"Content-Type": "application/x-www-form-urlencoded"}
+        )
         if response.status_code == 200:
             return jsonify({"message": "Token revoked successfully"}), 200
         else:
-            return jsonify({"error": response.text}), response.status_code
+            return jsonify({"error from making wakatime request":
+                            response.text}), response.status_code
     except Exception as e:
-        return jsonify({"error": str(e)}), 400
-
+        return jsonify({"error (in python)": str(e)}), 500
 
 
 if __name__ == '__main__':

@@ -34,18 +34,22 @@ const CheckParams = () => {
         },
         body: JSON.stringify({ token: code }),
       }).catch((err) => console.error("Token exchange failed:", err));
-
-      window.close();
     }
   }, [searchParams, setCookie]);
-
+  window.close();
   return null; // No UI, just a side-effect
 };
 
 const CheckLogin = () => {
   const [cookie] = useCookies(["token"]);
+  const [udata] = useCookies(["userData"]);
   const token = cookie["token"];
-  return token !== undefined;
+  const userData = udata["userData"];
+  if (token && userData) {
+    return true;
+  } else {
+    return undefined;
+  }
 };
 
 const Login = () => {
@@ -63,7 +67,7 @@ const Login = () => {
 
       const result = await response.json();
       // Redirect user to the URL
-      window.open(result["url"], "_blank", "width=500,height=600");
+      window.open(result["url"], "_blank");
     } catch (error) {
       toast.error(error.message);
       console.error("Error during login request:", error);
@@ -73,10 +77,18 @@ const Login = () => {
   const sendLogOutRequest = async () => {
     // Send a request to https://wakatime.com/oauth/revoke to revoke the token if needed
     try {
-      const response = await fetch("http://127.0.0.1:5000/revoke_token");
+      const uid = cookie["userData"];
+      const response = await fetch("http://127.0.0.1:5000/revoke_token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid: uid["data"]["id"] }),
+      });
 
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
+      } else {
+        removeCookie("token");
+        removeCookie("userData");
       }
     } catch (error) {
       console.error("Error during logging out and token revoke:", error);

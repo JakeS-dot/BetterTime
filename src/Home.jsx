@@ -14,6 +14,14 @@ export default function Home() {
   const [buttonAvailable, setButtonAvailable] = useState(false);
   const token = useCookies(["token"]);
 
+
+  const checkCache = () => {
+    
+  }
+  // If the user is logged in pull the data dumps/check the cache for it
+  const checkLogin = () => {
+    if (token[0]["token"] == null) {
+      checkCache();}
   const validateDates = (updatedDates) => {
     const { day1, day2 } = updatedDates;
     if (day1 && day2 && day2 > day1) {
@@ -22,7 +30,7 @@ export default function Home() {
       setButtonAvailable(false);
     }
   };
-
+  
   const handleDateChange = (dayKey, date) => {
     const updatedDates = { ...dates, [dayKey]: date };
     setDates(updatedDates);
