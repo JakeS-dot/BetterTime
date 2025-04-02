@@ -90,30 +90,46 @@ def get_access_token():
         return jsonify({"error": "An error occurred", "details": str(e)}), 500
 
 
+def create_dump(token):
+    try:
+        service = get_wakatime_service()
+        dump_url = "https://wakatime.com/api/v1/users/current/data_dumps"
+
+        session = service.get_session(token)
+        response = session.post(
+            dump_url,
+            json={
+                "type": "daily",
+                "email_when_finsihed": False
+            },
+            headers={"Content-Type": "application/json"}
+        )
+        print(response.json())
+        return response
+    except Exception as e:
+        return Exception("Error creating dump: " + str(e))
+
+
 @app.route("/get_dumps", methods=['POST'])
 def get_dumps():
     try:
-        data = request.json
-        access_token = data.get("token")
-
-        if not access_token:
-            return jsonify({"error": "Missing access token"}), 400
-
+        token = request.json
+        token = token["token"][0]["token"]
         service = get_wakatime_service()
+        session = service.get_session(token)
+        response = session.get("users/current/data_dumps")
 
-        session = service.get_session(access_token)
-
-        data_dumps_url = "users/current/data_dumps"
-
-        response = session.get(data_dumps_url)
+        if response.json()['data'] == []:
+            app.logger.info('**Creating a dump**')
+            create_dump(token)
 
         if response.status_code == 200:
             return jsonify(response.json()), 200
         else:
             return jsonify({
-                "error": "Failed to retrieve data dumps",
-                "details": response.json()
-            }), response.status_code
+                           "error": "Failed to retrieve user data",
+                           "details": response.json()
+                           }), response.status_code
 
     except Exception as e:
         return jsonify({"error": "An error occurred", "details": str(e)}), 500

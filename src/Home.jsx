@@ -14,23 +14,33 @@ export default function Home() {
   const [buttonAvailable, setButtonAvailable] = useState(false);
   const token = useCookies(["token"]);
 
+  const handleGetFile = async () => {
+    try {
+      const response = await fetch("http://127.0.0.1:5000/get_dumps", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: token }),
+      });
 
-  const checkCache = () => {
-    
-  }
-  // If the user is logged in pull the data dumps/check the cache for it
-  const checkLogin = () => {
-    if (token[0]["token"] == null) {
-      checkCache();}
+      const result = await response.json();
+      console.log(result);
+    } catch (error) {
+      toast.error(error.message);
+      console.error("Error during getting dumps request:", error);
+    }
+  };
   const validateDates = (updatedDates) => {
     const { day1, day2 } = updatedDates;
     if (day1 && day2 && day2 > day1) {
       setButtonAvailable(true);
+      if (token !== undefined) {
+        handleGetFile();
+      }
     } else {
       setButtonAvailable(false);
     }
   };
-  
+
   const handleDateChange = (dayKey, date) => {
     const updatedDates = { ...dates, [dayKey]: date };
     setDates(updatedDates);

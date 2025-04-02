@@ -16,7 +16,6 @@ const CheckParams = () => {
     if (accessToken) {
       setCookie("token", accessToken, {
         path: "/",
-        maxAge: 43200,
         secure: true,
       });
       console.log("Access Token Saved:", accessToken);
@@ -40,20 +39,8 @@ const CheckParams = () => {
   return null; // No UI, just a side-effect
 };
 
-const CheckLogin = () => {
-  const [cookie] = useCookies(["token"]);
-  const [udata] = useCookies(["userData"]);
-  const token = cookie["token"];
-  const userData = udata["userData"];
-  if (token && userData) {
-    return true;
-  } else {
-    return undefined;
-  }
-};
-
 const Login = () => {
-  const [cookie, setCookie] = useCookies(["token", "userData"]);
+  const [cookie, setCookie, removeCookie] = useCookies(["token", "userData"]);
   const token = cookie["token"];
   const userData = cookie["userData"];
 
@@ -128,9 +115,18 @@ const Login = () => {
   };
 
   // Call getUserData if the user is logged in
-  if (CheckLogin()) {
-    getUserData();
-  }
+  const CheckLogin = () => {
+    const [cookie] = useCookies(["token", "userData"]);
+    const token = cookie["token"];
+    if (token === undefined) {
+      if (userData === undefined) {
+        getUserData();
+      }
+      return false;
+    } else {
+      return true;
+    }
+  };
 
   return (
     <div>
