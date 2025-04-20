@@ -5,6 +5,7 @@ from rauth import OAuth2Service
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
+import requests
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -110,18 +111,67 @@ def create_dump(token):
         return Exception("Error creating dump: " + str(e))
 
 
+@app.route("/check_dump", methods=['POST'])
+def check_dump():
+    try:
+        print("check dump ran!")
+        data = request.get_json()
+        dump_id = data["id"]
+        response = requests.get(
+            f"https://wakatime.com/api/v1/users/current/data_dumps/{dump_id}",
+            headers={"Content-Type": "application/json"})
+        try:
+            return jsonify(response.json()), 200
+
+        except ValueError:
+            return jsonify({"error": "ID not given OR invalid"}), 400
+    except Exception as e:
+        return jsonify({"error": "An error occurred", "details": str(e)}), 500
+
+
+@app.route("/download_dump", methods=['POST'])
+def download_dump():
+    try:
+        data = request.get_json()
+        if not data or "url" not in data:
+            return jsonify({"error": "Missing 'url' in request body"}), 400
+
+        url = data["url"]
+        response = requests.get(
+            url, headers={"Content-Type": "application/json"})
+
+        try:
+            return jsonify(response.json()), 200
+        except ValueError:
+            return jsonify({"error": "Invalid JSON response from the URL"}),
+            502
+
+    except Exception as e:
+        print(e)
+        return jsonify({"error": "An error occurred", "details": str(e)}), 500
+
+
 @app.route("/get_dumps", methods=['POST'])
 def get_dumps():
     try:
         token = request.json
-        token = token["token"][0]["token"]
+        token = token["token"]
         service = get_wakatime_service()
         session = service.get_session(token)
         response = session.get("users/current/data_dumps")
 
-        if response.json()['data'] == []:
-            app.logger.info('**Creating a dump**')
-            create_dump(token)
+        print(response.json())
+        try:
+            if response.json()['data'] == []:
+                app.logger.info('**Creating a dump**')
+                create_dump(token)
+        except KeyError:
+            if response.json()['error']:
+                return jsonify({"error": f"Wakatime has reutrned an error:{response.json()}"}), 500
+            elif response.json()['error'] == 'Unauthorized':
+                return jsonify({"error": "Unauthorized"}), 401
+            else:
+                return jsonify({"error": "Wakatime returned invalid data!!"}), 401
 
         if response.status_code == 200:
             return jsonify(response.json()), 200
