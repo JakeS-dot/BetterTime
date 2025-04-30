@@ -8,117 +8,54 @@ import { ProjectBar } from "./components/ProjectBar.jsx";
 import { ErrorBoundary } from "./ErrorBoundary.jsx";
 import { useCookies } from "react-cookie";
 
+// Utility functions
+import {
+  downloadFile,
+  handleGetFile,
+  validateDates,
+  handleFileUpload,
+} from "./api/generateDumps.jsx"; // Adjust the path if necessary
+
 export default function Home() {
   const [rawJson, setRawJson] = useState(null);
   const [dates, setDates] = useState({ day1: null, day2: null });
   const [buttonAvailable, setButtonAvailable] = useState(false);
-  const token = useCookies(["token"]);
-
-  const handleGetFile = async () => {
-    try {
-      const response = await fetch("http://127.0.0.1:5000/get_dumps", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: token }),
-      });
-
-      const result = await response.json();
-      console.log(result);
-    } catch (error) {
-      toast.error(error.message);
-      console.error("Error during getting dumps request:", error);
-    }
-  };
-  const validateDates = (updatedDates) => {
-    const { day1, day2 } = updatedDates;
-    if (day1 && day2 && day2 > day1) {
-      setButtonAvailable(true);
-      if (token !== undefined) {
-        handleGetFile();
-      }
-    } else {
-      setButtonAvailable(false);
-    }
-  };
+  const [cookies] = useCookies(["token"]);
+  const token = cookies["token"];
+  const [fileData, setFileData] = useState({});
+  const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
 
   const handleDateChange = (dayKey, date) => {
     const updatedDates = { ...dates, [dayKey]: date };
     setDates(updatedDates);
-    validateDates(updatedDates);
+
+    validateDates(updatedDates, setButtonAvailable, token, () =>
+      handleGetFile(
+        token,
+        setShowLoadingOverlay,
+        handleWaitForDownload,
+        toast.error,
+      ),
+    );
   };
 
-  const handleFileUpload = async (event) => {
+  const handleWaitForDownload = (data) => {
+    downloadFile(data, setFileData, toast);
+  };
+
+  const handleFileUploadWrapper = (event) => {
     if (!buttonAvailable) {
       toast.error("Please ensure both dates are valid and populated!");
       return;
     }
 
-    setRawJson(""); // Clear previous data
-    const file = event.target.files[0];
-    event.target.value = null; // Clear input value
-    if (!file) {
-      toast.error("No file selected!");
-      return;
-    }
-
-    await toast.promise(
-      (async () => {
-        try {
-          const text = await file.text();
-          let jsonData;
-          try {
-            jsonData = JSON.parse(text);
-          } catch (parseError) {
-            throw new Error(`JSON Parsing Error: ${parseError.message}`);
-          }
-
-          const response = await fetch("http://127.0.0.1:5000/process_json", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              jsonData: jsonData,
-              day1: dates.day1,
-              day2: dates.day2,
-            }),
-          });
-
-          if (!response.ok) {
-            let errorMessage;
-            switch (response.status) {
-              case 401:
-                errorMessage =
-                  "KeyError: Missing or incorrect key in the JSON.";
-                break;
-              case 402:
-                errorMessage =
-                  "ValueError: Invalid value provided in the JSON.";
-                break;
-              case 403:
-                errorMessage = "TypeError: Date does not exist in given JSON";
-                break;
-              default:
-                errorMessage = `Unexpected Error (HTTP ${response.status}): ${await response.text()}`;
-            }
-            throw new Error(errorMessage);
-          }
-
-          const responseData = await response.json();
-          setRawJson(JSON.stringify(responseData, null, 2));
-        } catch (error) {
-          toast.error(error.message);
-          throw error;
-        }
-      })(),
-      {
-        pending: "Processing your file...",
-        success: "File processed successfully!",
-        error: "An error occurred while processing the file.",
-      },
-    );
+    handleFileUpload({
+      event,
+      dates,
+      setRawJson,
+      toast,
+    });
   };
-
   return (
     <>
       <nav>
@@ -151,7 +88,7 @@ export default function Home() {
         <input
           type="file"
           accept="application/json"
-          onChange={handleFileUpload}
+          onChange={handleFileUploadWrapper}
           multiple={false}
           id={"json_file_uploader"}
           style={{ display: "none" }}
@@ -163,7 +100,7 @@ export default function Home() {
             <a href="/login">Login</a>
           ) : (
             <a href="/login">Loged In</a>
-          )}{" "}
+          )}
         </button>
         <ToastContainer theme={"dark"} />
       </nav>
@@ -174,7 +111,7 @@ export default function Home() {
             selected={dates.day1}
             onChange={(date) => handleDateChange("day1", date)}
             dateFormat="yyyy-MM-dd"
-            maxDate={new Date()} // Prevent selecting a future
+            maxDate={new Date()}
           />
         </div>
         <div className="flex flex-col m-3">
@@ -183,19 +120,15 @@ export default function Home() {
             selected={dates.day2}
             onChange={(date) => handleDateChange("day2", date)}
             dateFormat="yyyy-MM-dd"
-            minDate={dates.day1} // Prevent selecting a date earlier than Day 1
-            maxDate={new Date()} // Prevent selecting a future
+            minDate={dates.day1}
+            maxDate={new Date()}
           />
         </div>
       </div>
       {/* Project Bar */}
       <div className="flex flex-wrap w-[555px] h-full">
         <ErrorBoundary>
-          <ResponsiveContainer
-            width="100%"
-            height={220}
-            className={"bg-bg-600"}
-          >
+          <ResponsiveContainer width="100%" height={220} className="bg-bg-600">
             {rawJson ? (
               <ProjectBar data={rawJson} />
             ) : (
