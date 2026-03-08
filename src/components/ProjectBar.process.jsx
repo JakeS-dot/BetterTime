@@ -4,6 +4,38 @@ export const processData = (data) => {
   const processed = [];
   const colors = [];
   const uniqueProjects = new Set();
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    date.setDate(date.getDate() + 1); // increase by one because idk
+
+    const options = {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    };
+    let formatted = date.toLocaleDateString("en-US", options);
+
+    formatted = formatted.replace(",", "");
+
+    const day = date.getDate();
+    const suffix = (d) => {
+      if (d > 3 && d < 21) return "th";
+      switch (d % 10) {
+        case 1:
+          return "st";
+        case 2:
+          return "nd";
+        case 3:
+          return "rd";
+        default:
+          return "th";
+      }
+    };
+    formatted = formatted.replace(`${day}`, `${day}${suffix(day)}`);
+
+    return formatted; // "Thu Mar 5th 2026"
+  };
 
   try {
     if (typeof data === "string") {
@@ -35,7 +67,11 @@ export const processData = (data) => {
       // Second pass: build processed data for chart
       for (let key = 0; key < data.dailyTotals.length; key++) {
         const current = data.dailyTotals[key];
-        let pageData = { name: current.range?.date || "Unknown" };
+        let pageData = {
+          name: current.range?.date
+            ? formatDate(current.range.date)
+            : "Unknown",
+        };
         let comb = 0;
 
         // Initialize all unique projects with 0 seconds

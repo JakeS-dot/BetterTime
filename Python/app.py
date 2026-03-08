@@ -55,6 +55,7 @@ def get_stats():
         # stat_range = data.get("range", "last_7_days")
         start = data.get("start")
         end = data.get("end")
+        print("START:", start, "END:", end)
 
         if not token:
             return jsonify({"error": "Missing token"}), 400
@@ -76,6 +77,14 @@ def get_stats():
             "dailyTotals": summaries_data.get("data", []),
             "allTime": all_time_data.get("data", {})
         }
+        if not summaries_response.ok or not all_time_response.ok:
+            raise Exception(f"Failed to fetch data: "
+                            f"summaries_status={
+                                summaries_response.status_code}, "
+                            f"all_time_status={
+                                all_time_response.status_code}, "
+                            f"summaries_msg={summaries_response.text}, "
+                            f"all_time_msg={all_time_response.text}")
 
         return jsonify(dashboard_data), 200
 

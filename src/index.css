@@ -2,28 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --text: #edfcf0ff;
-  --secondary-background: #232e55ff;
-  --background: #0c0c17ff;
-}
-
 body {
-  background-color: var(--background);
-  color: var(--text);
+  background-color: #1b1b1b;
+  color: #eee;
   font-family: "Roboto", sans-serif;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E %3Cpolygon points='0,25 0,75 75,0 25,0' style='fill:%23202a2a;' /%3E %3Cpolygon points='0,125 0,175 175,0 125,0' style='fill:%23202a2a;' /%3E %3Cpolygon points='25,200 75,200 200,75 200,25' style='fill:%23202a2a;' /%3E %3Cpolygon points='125,200 175,200 200,175 200,125' style='fill:%23202a2a;' /%3E %3C/svg%3E");
+  background-size: 16px;
+  background-attachment: fixed;
   margin: 0;
   padding: 0;
 }
 
-nav {
-  background-color: var(--secondary-background);
-  display: flex;
-  justify-content: space-between;
-  max-height: 7vh;
-  align-items: center;
-}
-
-input {
-  color: black;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
