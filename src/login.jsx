@@ -53,7 +53,7 @@ const Login = () => {
               try {
                 await sendLoginApiRequest();
               } catch (e) {
-                toast.error("Login failed");
+                toast.error("Login failed", e);
               }
             }}
           >

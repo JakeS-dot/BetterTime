@@ -1,16 +1,16 @@
-from datetime import datetime
 import hashlib
 import os
 from rauth import OAuth2Service
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
-import requests
+from pathlib import Path
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
-load_dotenv('local.env')
+env_path = Path(__file__).parent / "local.env"
+load_dotenv(env_path)
 
 
 @app.route('/')
@@ -18,51 +18,10 @@ def hello_world():
     return 'Hello World!'
 
 
-@app.route('/process_json', methods=['POST'])
-def process_json():
-    try:
-        request_data = request.get_json()
-        json_data = request_data['jsonData']
-        day1 = request_data['day1']
-        day2 = request_data['day2']
-
-        # Access the "days" key in the JSON
-        days_data = json_data.get("days", {})
-        data = {}
-        days_0 = days_data[0]["date"]
-
-        # Parse the strings to datetime objects
-        day1 = datetime.strptime(day1, "%Y-%m-%dT%H:%M:%S.%fZ")
-        day2 = datetime.strptime(day2, "%Y-%m-%dT%H:%M:%S.%fZ")
-
-        # Calculate the absolute difference in days
-
-        date0 = datetime.strptime(days_0, "%Y-%m-%d")
-
-        # Subtract dates
-        i = int(abs(date0 - day1).days)
-        day2 = int(abs(day1 - day2).days) + i
-
-        a = 0
-        while i <= day2:
-            data[a] = days_data[i]
-            i += 1
-            a += 1
-        return jsonify(data), 200
-    except KeyError as e:
-        return jsonify({'error': f'JSON key not found: {e}'}), 400
-    except ValueError as e:
-        return jsonify({'error': f'Not Valid WakaTime Data: {e}'}), 422
-    except IndexError as e:
-        return jsonify({'error': f'Date (presumably) not found: {e}'}), 400
-    except Exception as e:
-        return jsonify({'error': "Flask - " + str(e)}), 500
-
-
 def get_wakatime_service():
     return OAuth2Service(
-        client_id=os.environ.get("VITE_WAKA_APP_ID"),
-        client_secret=os.environ.get("VITE_WAKA_APP_SECRET"),
+        client_id=os.environ.get("WAKA_APP_ID"),
+        client_secret=os.environ.get("WAKA_APP_SECRET"),
         name='wakatime',
         authorize_url='https://wakatime.com/oauth/authorize',
         access_token_url='https://wakatime.com/oauth/token',
@@ -87,98 +46,44 @@ def get_access_token():
         return jsonify({"error": "An error occurred", "details": str(e)}), 500
 
 
-def create_dump(token):
+@app.route("/get_stats_data", methods=["POST"])
+def get_stats():
     try:
-        service = get_wakatime_service()
-        dump_url = "https://wakatime.com/api/v1/users/current/data_dumps"
+        data = request.json or {}
 
-        session = service.get_session(token)
-        response = session.post(
-            dump_url,
-            json={
-                "type": "daily",
-                "email_when_finsihed": False
-            },
-            headers={"Content-Type": "application/json"}
-        )
-        print(response.json())
-        return response
-    except Exception as e:
-        return Exception("Error creating dump: " + str(e))
+        token = data.get("token")
+        # stat_range = data.get("range", "last_7_days")
+        start = data.get("start")
+        end = data.get("end")
 
+        if not token:
+            return jsonify({"error": "Missing token"}), 400
 
-@app.route("/check_dump", methods=['POST'])
-def check_dump():
-    try:
-        print("check dump ran!")
-        data = request.get_json()
-        dump_id = data["id"]
-        response = requests.get(
-            f"https://wakatime.com/api/v1/users/current/data_dumps/{dump_id}",
-            headers={"Content-Type": "application/json"})
-        try:
-            return jsonify(response.json()), 200
-
-        except ValueError:
-            return jsonify({"error": "ID not given OR invalid"}), 400
-    except Exception as e:
-        return jsonify({"error": "An error occurred", "details": str(e)}), 500
-
-
-@app.route("/download_dump", methods=['POST'])
-def download_dump():
-    try:
-        data = request.get_json()
-        if not data or "url" not in data:
-            return jsonify({"error": "Missing 'url' in request body"}), 400
-
-        url = data["url"]
-        response = requests.get(
-            url, headers={"Content-Type": "application/json"})
-
-        try:
-            return jsonify(response.json()), 200
-        except ValueError:
-            return jsonify({"error": "Invalid JSON response from the URL"}),
-            502
-
-    except Exception as e:
-        print(e)
-        return jsonify({"error": "An error occurred", "details": str(e)}), 500
-
-
-@app.route("/get_dumps", methods=['POST'])
-def get_dumps():
-    try:
-        token = request.json
-        token = token["token"]
         service = get_wakatime_service()
         session = service.get_session(token)
-        response = session.get("users/current/data_dumps")
 
-        print(response.json())
-        try:
-            if response.json()['data'] == []:
-                app.logger.info('**Creating a dump**')
-                create_dump(token)
-        except KeyError:
-            if response.json()['error']:
-                return jsonify({"error": f"Wakatime has reutrned an error:{response.json()}"}), 500
-            elif response.json()['error'] == 'Unauthorized':
-                return jsonify({"error": "Unauthorized"}), 401
-            else:
-                return jsonify({"error": "Wakatime returned invalid data!!"}), 401
+        summaries_url = f"https://wakatime.com/api/v1/users/current/summaries?start={
+            start}&end={end}"
+        all_time_url = "https://wakatime.com/api/v1/users/current/all_time_since_today"
 
-        if response.status_code == 200:
-            return jsonify(response.json()), 200
-        else:
-            return jsonify({
-                           "error": "Failed to retrieve user data",
-                           "details": response.json()
-                           }), response.status_code
+        summaries_response = session.get(summaries_url)
+        all_time_response = session.get(all_time_url)
+
+        summaries_data = summaries_response.json()
+        all_time_data = all_time_response.json()
+
+        dashboard_data = {
+            "dailyTotals": summaries_data.get("data", []),
+            "allTime": all_time_data.get("data", {})
+        }
+
+        return jsonify(dashboard_data), 200
 
     except Exception as e:
-        return jsonify({"error": "An error occurred", "details": str(e)}), 500
+        return jsonify({
+            "error": "Error getting stats",
+            "message": str(e)
+        }), 500
 
 
 @app.route("/get_user_data", methods=['POST'])
@@ -212,7 +117,7 @@ def login():
             "redirect_uri": redirect_uri,
             "response_type": "token",
             "state": state,
-            "scope": 'email, read_heartbeats'
+            "scope": 'email, read_stats, read_summaries'
         }
 
         url = service.get_authorize_url(**params)

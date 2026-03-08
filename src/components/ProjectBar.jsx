@@ -52,5 +52,5 @@ export class ProjectBar extends React.Component {
   }
 }
 ProjectBar.propTypes = {
-  data: PropTypes.string.isRequired,
+  data: PropTypes.oneOfType([PropTypes.string, PropTypes.object]).isRequired,
 };

@@ -11,50 +11,55 @@ export const processData = (data) => {
     }
 
     // First pass: Gather all unique project names
-    for (let key = 0; Object.prototype.hasOwnProperty.call(data, key); key++) {
-      const current = data[key];
 
-      if (current["projects"] && Array.isArray(current["projects"])) {
-        current["projects"].forEach((project) => {
-          if (!uniqueProjects.has(project["name"])) {
-            uniqueProjects.add(project["name"]);
-            colors.push("#" + stringToNeonColor(project["name"]));
-          }
-        });
-      }
-    }
+    // Source - https://stackoverflow.com/a/1112609
+    // Posted by Your Friend Ken, modified by community. See post 'Timeline' for change history
+    // Retrieved 2026-03-08, License - CC BY-SA 4.0
 
-    // Second pass: Process each day's data
-    for (let key = 0; Object.prototype.hasOwnProperty.call(data, key); key++) {
-      const current = data[key];
-      let pageData = { name: current["date"] }; // Start with the date as the page name
-      let comb = 0;
+    // Instead of iterating root object, use data.dailyTotals array
+    if (Array.isArray(data.dailyTotals)) {
+      for (let key = 0; key < data.dailyTotals.length; key++) {
+        const current = data.dailyTotals[key];
 
-      // Initialize all unique projects with 0 seconds
-      uniqueProjects.forEach((projectName) => {
-        pageData[projectName] = 0;
-      });
-
-      // Populate data for the current day's projects
-      if (current["projects"] && Array.isArray(current["projects"])) {
-        current["projects"].forEach((project) => {
-          const projectName = project["name"];
-          const totalSeconds = Math.round(
-            project["grand_total"]["total_seconds"],
-          );
-          pageData[projectName] = totalSeconds; // Update project time
-          comb += totalSeconds;
-        });
+        // Now dailyTotals[i].projects is the actual projects array
+        if (current.projects && Array.isArray(current.projects)) {
+          current.projects.forEach((project) => {
+            if (!uniqueProjects.has(project.name)) {
+              uniqueProjects.add(project.name);
+              colors.push("#" + stringToNeonColor(project.name));
+            }
+          });
+        }
       }
 
-      // Add the comb variable to the pageData object
-      pageData["comb"] = Math.round(comb);
+      // Second pass: build processed data for chart
+      for (let key = 0; key < data.dailyTotals.length; key++) {
+        const current = data.dailyTotals[key];
+        let pageData = { name: current.range?.date || "Unknown" };
+        let comb = 0;
 
-      // Push the pageData to the processed array
-      processed.push(pageData);
+        // Initialize all unique projects with 0 seconds
+        uniqueProjects.forEach((projectName) => {
+          pageData[projectName] = 0;
+        });
+
+        // Populate data for the current day's projects
+        if (current.projects && Array.isArray(current.projects)) {
+          current.projects.forEach((project) => {
+            const projectName = project.name;
+            const totalSeconds = Math.round(project.total_seconds);
+            pageData[projectName] = totalSeconds; // Update project time
+            comb += totalSeconds;
+          });
+        }
+
+        pageData["comb"] = Math.round(comb);
+        processed.push(pageData);
+      }
     }
   } catch (error) {
     console.error("Error:", error);
   }
+
   return [processed, colors];
 };
