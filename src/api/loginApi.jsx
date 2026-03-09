@@ -18,7 +18,7 @@ export async function getUserData(token) {
       });
   } else {
     console.error("Error, no token given");
-    return Promise.reject("No token provided"); // Optional: to keep the return consistent
+    return Promise.reject("No token provided");
   }
 }
 
@@ -53,7 +53,6 @@ export const exchangeCodeForToken = async (searchParams) => {
       });
 
       window.history.replaceState(null, "", window.location.pathname);
-      window.close();
     } catch (err) {
       console.error("Token exchange failed:", err);
     }

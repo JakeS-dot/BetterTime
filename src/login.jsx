@@ -61,6 +61,7 @@ const Login = () => {
           </button>
         )}
       </div>
+      <a href="/">Go back</a>
     </>
   );
 };

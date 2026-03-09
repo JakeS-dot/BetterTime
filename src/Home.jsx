@@ -20,11 +20,12 @@ const toLocalDateString = (date) => {
 export default function Home() {
   const [rawJson, setRawJson] = useState(null);
   const [dates, setDates] = useState({ day1: null, day2: null });
-  const [cookies] = useCookies(["token"]);
+  const [cookies] = useCookies(["token, refresh"]);
   const [dateRangeText, setDateRangeText] = useState("Last 7 Days");
   const [showDatePanel, setShowDatePanel] = useState(false);
   const triggerRef = useRef(null);
   const token = cookies["token"];
+  const refresh = cookies["refresh"];
 
   useEffect(() => {
     // Source - https://stackoverflow.com/a/4944782
@@ -53,10 +54,10 @@ export default function Home() {
     ).padStart(2, "0")}`;
     const start = toLocalDateString(startDay);
     const end = toLocalDateString(endDay);
-    handleGetStats(token, range, start, end, toast.error).then((data) => {
+    token && handleGetStats(token, refresh, range, start, end, toast.error).then((data) => {
       if (data) setRawJson(data);
     });
-  }, [dates, token]);
+  }, [dates, token, refresh]);
 
   return (
     <>
