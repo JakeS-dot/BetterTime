@@ -30,27 +30,6 @@ def get_wakatime_service():
     )
 
 
-@app.route("/set_cookie")
-def set_cookie():
-    resp = make_response(jsonify({"message": "cookie set"}))
-
-    resp.set_cookie(
-        "test_cookie",
-        "flask_cookie_value",
-        httponly=True,
-        samesite="None",
-        secure=True
-    )
-
-    return resp
-
-
-@app.route("/get_cookie")
-def get_cookie():
-    cookie = request.cookies.get("test_cookie")
-    return jsonify({"cookie_received": cookie})
-
-
 def parse_form_encoded(text):
     data = {}
     pairs = text.split("&")
@@ -164,7 +143,8 @@ def get_stats():
         service = get_wakatime_service()
         session = service.get_session(token)
 
-        summaries_url = f"https://wakatime.com/api/v1/users/current/summaries?start={start}&end={end}"
+        summaries_url = f"https://wakatime.com/api/v1/users/current/summaries?start={
+            start}&end={end}"
         all_time_url = "https://wakatime.com/api/v1/users/current/all_time_since_today"
 
         summaries_response = session.get(summaries_url)
