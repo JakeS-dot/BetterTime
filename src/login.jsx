@@ -27,7 +27,6 @@ const Login = () => {
 
   useEffect(() => {
     fetchUserDataIfNeeded(
-      token,
       userData,
       setCookie,
       setIsLoggedIn,

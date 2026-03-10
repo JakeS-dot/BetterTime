@@ -1,13 +1,14 @@
 import hashlib
 import os
 from rauth import OAuth2Service
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
 from flask_cors import CORS
 from dotenv import load_dotenv
 from pathlib import Path
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, supports_credentials=True,
+     origins=["http://localhost:5173"])
 
 env_path = Path(__file__).parent / "local.env"
 load_dotenv(env_path)
@@ -29,18 +30,77 @@ def get_wakatime_service():
     )
 
 
+@app.route("/set_cookie")
+def set_cookie():
+    resp = make_response(jsonify({"message": "cookie set"}))
+
+    resp.set_cookie(
+        "test_cookie",
+        "flask_cookie_value",
+        httponly=True,
+        samesite="None",
+        secure=True
+    )
+
+    return resp
+
+
+@app.route("/get_cookie")
+def get_cookie():
+    cookie = request.cookies.get("test_cookie")
+    return jsonify({"cookie_received": cookie})
+
+
+def parse_form_encoded(text):
+    data = {}
+    pairs = text.split("&")
+
+    for pair in pairs:
+        key, value = pair.split("=", 1)
+        data[key] = value
+
+    return data
+
+
 @app.route("/get_access_token", methods=['POST'])
 def get_access_token():
     try:
-        data = request.json
-        token = data.get("token")
+        code = request.json.get("token")
 
-        headers = {'Accept': 'application/x-www-form-urlencoded'}
         service = get_wakatime_service()
-        service.get_auth_session(headers=headers, data={
-            "code": token, 'grant-type': 'authorization-code',
-            'redirect_uri': 'http://localhost:5173/login'})
-        return 200
+
+        session = service.get_auth_session(
+            data={
+                "code": code,
+                "grant_type": "authorization_code",
+                "redirect_uri": "http://localhost:5173/login"
+            }
+        )
+        raw = session.access_token_response.text
+
+        token_data = parse_form_encoded(raw)
+
+        access_token = token_data.get("access_token")
+        refresh_token = token_data.get("refresh_token")
+
+        resp = make_response(jsonify({"success": True}))
+        resp.set_cookie(
+            "access_token",
+            access_token,
+            httponly=True,
+            secure=True,
+            samesite="None"
+        )
+
+        resp.set_cookie(
+            "refresh_token",
+            refresh_token,
+            httponly=True,
+            secure=True,
+            samesite="None"
+        )
+
+        return resp
 
     except Exception as e:
         return jsonify({"error": "An error occurred", "details": str(e)}), 500
@@ -93,7 +153,8 @@ def get_stats():
     try:
         data = request.json or {}
 
-        token = data.get("token")
+        token = request.cookies.get("access_token")
+        # range = data.get("range")
         start = data.get("start")
         end = data.get("end")
 
@@ -144,7 +205,11 @@ def get_stats():
 @app.route("/get_user_data", methods=['POST'])
 def get_udata():
     try:
-        token = request.json.get("token")
+        token = request.cookies.get("access_token")
+
+        if not token:
+            return jsonify({"error": "User not logged in"}), 401
+
         service = get_wakatime_service()
         session = service.get_session(token)
         response = session.get("users/current")
@@ -156,6 +221,7 @@ def get_udata():
             "error": "Failed to retrieve user data",
             "details": response.json()
         }), response.status_code
+
     except Exception as e:
         return jsonify({"error": "An error occurred", "details": str(e)}), 500
 
@@ -212,4 +278,4 @@ def logout():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host="localhost", port=5000, debug=True)

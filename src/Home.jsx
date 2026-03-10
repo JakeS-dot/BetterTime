@@ -5,9 +5,9 @@ import "react-datepicker/dist/react-datepicker.css";
 import { ProjectBar } from "./components/ProjectBar.jsx";
 import { ErrorBoundary } from "./ErrorBoundary.jsx";
 import DateRangePanel from "./components/DatePicker.jsx";
-import { useCookies } from "react-cookie";
 import { handleGetStats } from "./api/getStats.jsx";
 import { getTotalTime } from "./components/totalTime.jsx"
+import { useCookies } from "react-cookie"
 
 const toLocalDateString = (date) => {
   const d = new Date(date);
@@ -18,16 +18,18 @@ const toLocalDateString = (date) => {
 };
 
 export default function Home() {
+  const [loggedIn, setLoggedIn] = useState(false);
   const [rawJson, setRawJson] = useState(null);
   const [dates, setDates] = useState({ day1: null, day2: null });
-  const [cookies] = useCookies(["token, refresh"]);
   const [dateRangeText, setDateRangeText] = useState("Last 7 Days");
   const [showDatePanel, setShowDatePanel] = useState(false);
   const triggerRef = useRef(null);
-  const token = cookies["token"];
-  const refresh = cookies["refresh"];
+  const [userDataCookie] = useCookies(['userData']);
 
   useEffect(() => {
+    if (userDataCookie["userData"]) {
+      setLoggedIn(true)
+    }
     // Source - https://stackoverflow.com/a/4944782
     // Posted by David Hedlund
     // Retrieved 2026-03-08, License - CC BY-SA 2.5
@@ -54,17 +56,17 @@ export default function Home() {
     ).padStart(2, "0")}`;
     const start = toLocalDateString(startDay);
     const end = toLocalDateString(endDay);
-    token && handleGetStats(token, refresh, range, start, end, toast.error).then((data) => {
+    loggedIn && handleGetStats(range, start, end, setLoggedIn, toast.error).then((data) => {
       if (data) setRawJson(data);
     });
-  }, [dates, token, refresh]);
+  }, [dates, loggedIn, userDataCookie]);
 
   return (
     <>
       <nav className="flex justify-between items-center max-h-[7vh] bg-background-900">
         <h1 className="text-2xl font-bold text-center py-4 m-2">BetterTime</h1>
         <button className="scale-75 bg-accent-600 transition ease-in-out duration-150 active:bg-accent-400 font-bold py-3 px-5 rounded inline-flex items-center hover:bg-accent-500 cursor-pointer">
-          {token ? <a href="/login">Logged In</a> : <a href="/login">Login</a>}
+          {loggedIn ? <a href="/login">Logged In</a> : <a href="/login">Login</a>}
         </button>
       </nav>
 

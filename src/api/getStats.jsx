@@ -1,18 +1,18 @@
 export const handleGetStats = async (
-  token,
   range,
   start,
   end,
+  setLoggedIn,
   setErrorToast,
 ) => {
   try {
-    const response = await fetch("http://127.0.0.1:5000/get_stats_data", {
+    const response = await fetch("http://localhost:5000/get_stats_data", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
+      credentials: "include",
       body: JSON.stringify({
-        token,
         range,
         start,
         end,
@@ -24,6 +24,7 @@ export const handleGetStats = async (
     }
 
     const result = await response.json();
+    setLoggedIn(true)
 
     console.log("Dashboard data:", result);
 
