@@ -1,13 +1,5 @@
 import PropTypes from "prop-types";
-
-function secondsToTimestamp(seconds) {
-  const hrs = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = seconds % 60;
-  return `${hrs.toString().padStart(2, "0")}:${minutes
-    .toString()
-    .padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-}
+import { secondsToTimestamp } from "../../tools/timeUtils.jsx"
 
 const ProjectBarTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
@@ -25,14 +17,14 @@ const ProjectBarTooltip = ({ active, payload, label }) => {
           color: "#fff",
         }}
       >
-        <strong className="underline">{`${label}`}</strong>
+        <strong className="underline text-center">{`${label}`}</strong>
         <p>
           <strong>Total </strong>{" "}
           <span className="ml-5 float-right">{secondsToTimestamp(total)}</span>
         </p>
         {filteredPayload.map((item, index) => (
           <p key={index}>
-            {item.name}{" "}
+            <span style={{ color: item.color }}>●</span> {item.name}
             <span className="ml-5 float-right">
               {secondsToTimestamp(item.value)}
             </span>

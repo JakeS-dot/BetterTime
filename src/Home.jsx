@@ -2,12 +2,13 @@ import { useState, useEffect, useRef } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "react-datepicker/dist/react-datepicker.css";
-import { ProjectBar } from "./components/ProjectBar.jsx";
+import { ProjectBar } from "./components/ProjectBar/ProjectBar.jsx";
 import { ErrorBoundary } from "./ErrorBoundary.jsx";
-import DateRangePanel from "./components/DatePicker.jsx";
+import DateRangePanel from "./components/DatePicker/DatePicker.jsx";
 import { handleGetStats } from "./api/getStats.jsx";
-import { getTotalTime } from "./components/totalTime.jsx"
+import { getTotalTime } from "./tools/timeUtils.jsx"
 import { useCookies } from "react-cookie"
+import { CategoryBar } from "./components/CategoryBar/CategoryBar.jsx";
 
 const toLocalDateString = (date) => {
   const d = new Date(date);
@@ -94,16 +95,20 @@ export default function Home() {
           )}
         </h1>
       </ErrorBoundary>
-      <div className="grid grid-cols-2 aspect-[2/1] gap-4 m-2 [&>*]:bg-background-850 [&>*]:p-4 [&>*]:h-[200px]">
+      <div className="grid grid-cols-2 gap-4 m-2 [&>*]:bg-background-850 [&>*]:p-4 ">
         <div className="h-[200px]">
           <ErrorBoundary>
             {rawJson ? <ProjectBar data={rawJson} /> : <div>nodata</div>}
           </ErrorBoundary>
         </div>
+        <div className="h-[200px]">
+          <ErrorBoundary>
+            {rawJson ? <CategoryBar data={rawJson} /> : <div>nodata</div>}
+          </ErrorBoundary>
+        </div>
 
-        <div>2</div>
-        <div>3</div>
-        <div>4</div>
+        <div className="h-[105px]">3</div>
+        <div className="h-[105px]">4</div>
         <div>5</div>
         <div>6</div>
         <div>7</div>

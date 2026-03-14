@@ -20,7 +20,7 @@ export class ProjectBar extends React.Component {
     return (
       <>
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={data} margin={{ top: 10 }}>
+          <ComposedChart data={data} margin={{ top: 10 }} barCategoryGap={1}>
             <Tooltip content={<ProjectBarTooltip />} />
             {Object.keys(data[0])
               .filter((key) => key !== "name" && key !== "comb")

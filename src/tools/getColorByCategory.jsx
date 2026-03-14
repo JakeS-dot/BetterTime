@@ -30,4 +30,4 @@ function getColorByCategory(category) {
   return categoryColors[category] || "#FFFFFF";
 }
 
-export default getColorByCategory;
+export { getColorByCategory };
