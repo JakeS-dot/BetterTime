@@ -146,31 +146,43 @@ def get_stats():
         summaries_url = f"https://wakatime.com/api/v1/users/current/summaries?start={
             start}&end={end}"
         all_time_url = "https://wakatime.com/api/v1/users/current/all_time_since_today"
+        heartbeats_url = f"https://wakatime.com/api/v1/users/current/heartbeats?date={
+            end}"
 
         summaries_response = session.get(summaries_url)
         all_time_response = session.get(all_time_url)
+        heartbeats_response = session.get(heartbeats_url)
 
-        if summaries_response.status_code == 401 or all_time_response.status_code == 401:
+        responses = [summaries_response,
+                     all_time_response, heartbeats_response]
+
+        if any(r.status_code == 401 for r in responses):
             return jsonify({
                 "error": "Unauthorized",
                 "message": "Token expired or invalid"
             }), 401
 
-        if not summaries_response.ok or not all_time_response.ok:
+        responses = {
+            "summaries": summaries_response,
+            "all_time": all_time_response,
+            "heartbeats": heartbeats_response
+        }
+
+        if not all(r.ok for r in responses.values()):
             return jsonify({
                 "error": "Failed to fetch data",
-                "summaries_status": summaries_response.status_code,
-                "all_time_status": all_time_response.status_code,
-                "summaries_msg": summaries_response.text,
-                "all_time_msg": all_time_response.text
+                **{f"{k}_status": v.status_code for k, v in responses.items()},
+                **{f"{k}_msg": v.text for k, v in responses.items()},
             }), 500
 
         summaries_data = summaries_response.json()
         all_time_data = all_time_response.json()
+        heartbeat_data = heartbeats_response.json()
 
         dashboard_data = {
             "dailyTotals": summaries_data.get("data", []),
-            "allTime": all_time_data.get("data", {})
+            "allTime": all_time_data.get("data", {}),
+            "heartBeats": heartbeat_data.get("data", {})
         }
 
         return jsonify(dashboard_data), 200
@@ -217,7 +229,7 @@ def login():
             "redirect_uri": redirect_uri,
             "response_type": "code",
             "state": state,
-            "scope": "email read_stats read_summaries"
+            "scope": "read_heartbeats email read_stats read_summaries"
         }
 
         url = service.get_authorize_url(**params)

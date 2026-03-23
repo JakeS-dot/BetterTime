@@ -22,23 +22,6 @@ export async function getUserData() {
     });
 }
 
-export const handleTokenFromUrl = (setCookie) => {
-  const fragment = window.location.hash.substring(1);
-  const fragmentParams = new URLSearchParams(fragment);
-  const accessToken = fragmentParams.get("access_token");
-
-  if (accessToken) {
-    setCookie("token", accessToken, {
-      path: "/",
-      secure: true,
-      expires: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-    });
-    return true;
-  }
-
-  return false;
-};
-
 export const exchangeCodeForToken = async (searchParams) => {
   const code = searchParams.get("code");
   if (code) {
@@ -63,7 +46,6 @@ export const exchangeCodeForToken = async (searchParams) => {
 export const fetchUserDataIfNeeded = (
   userData,
   setCookie,
-  setIsLoggedIn,
   getUserData,
 ) => {
   if (!userData) {
@@ -74,13 +56,12 @@ export const fetchUserDataIfNeeded = (
             path: "/",
             secure: true,
           });
-          setIsLoggedIn(true);
         } else {
-          setIsLoggedIn(false);
+          return null
         }
       });
   } else {
-    setIsLoggedIn(true);
+    return null
   }
 };
 
@@ -99,7 +80,6 @@ export const sendLoginApiRequest = async () => {
 export const sendLogOutRequest = async (
   userData,
   removeCookie,
-  setIsLoggedIn,
 ) => {
   try {
     const uid = userData?.data?.id;
@@ -112,7 +92,6 @@ export const sendLogOutRequest = async (
     if (!response.ok) throw new Error("Logout failed");
 
     removeCookie("userData");
-    setIsLoggedIn(false);
   } catch (error) {
     console.error("Error during logout:", error);
   }
