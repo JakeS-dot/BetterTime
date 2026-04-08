@@ -1,5 +1,5 @@
 import PropTypes from "prop-types";
-import { secondsToTimestamp } from "../../tools/timeUtils.jsx"
+import { secondsToTimestamp } from "../../tools/timeUtils.jsx";
 
 const CategoryBarTooltip = ({ active, payload, label }) => {
   if (!active || !payload || !payload.length) return null;
@@ -20,14 +20,14 @@ const CategoryBarTooltip = ({ active, payload, label }) => {
         minWidth: "180px",
       }}
     >
-      <strong className="underline block mb-1">
-        {title}
-      </strong>
+      <strong className="underline block mb-1">{title}</strong>
 
       {filteredPayload.map((item, index) => (
         <p key={index}>
           <span style={{ color: item.color }}>●</span> {item.name}
-          <span className="float-right ml-5">{secondsToTimestamp(item.value)}</span>
+          <span className="float-right ml-5">
+            {secondsToTimestamp(item.value)}
+          </span>
         </p>
       ))}
     </div>
@@ -40,7 +40,7 @@ CategoryBarTooltip.propTypes = {
     PropTypes.shape({
       name: PropTypes.string,
       value: PropTypes.number,
-    })
+    }),
   ),
   label: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
 };

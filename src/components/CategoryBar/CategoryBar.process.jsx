@@ -35,7 +35,7 @@ export const processData = (data) => {
 
       data.dailyTotals.forEach((day) => {
         const pageData = {
-          name: day.range?.text
+          name: day.range?.text,
         };
 
         uniqueCategories.forEach((catName) => {
@@ -60,11 +60,9 @@ export const processData = (data) => {
       // build horizontal data
       processed[1].push(combined);
     }
-
   } catch (error) {
     console.error("Error:", error);
   }
 
   return [processed, colors];
 };
-

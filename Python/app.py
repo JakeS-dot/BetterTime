@@ -5,6 +5,7 @@ from flask import Flask, request, jsonify, make_response
 from flask_cors import CORS
 from dotenv import load_dotenv
 from pathlib import Path
+from urllib.parse import parse_qsl
 
 app = Flask(__name__)
 CORS(app, supports_credentials=True,
@@ -68,6 +69,7 @@ def get_access_token():
             access_token,
             httponly=True,
             secure=True,
+            max_age=12*60*60,
             samesite="None"
         )
 
@@ -76,6 +78,7 @@ def get_access_token():
             refresh_token,
             httponly=True,
             secure=True,
+            max_age=30*24*3600,
             samesite="None"
         )
 
@@ -88,11 +91,9 @@ def get_access_token():
 @app.route("/refresh_token", methods=["POST"])
 def refresh_token():
     try:
-        data = request.json or {}
-        refresh_token = data.get("refresh_token")
-
+        refresh_token = request.cookies.get("refresh_token")
         if not refresh_token:
-            return jsonify({"error": "Missing refresh_token"}), 400
+            return jsonify({"error": "Missing refresh_token cookie"}), 400
 
         service = get_wakatime_service()
 
@@ -106,7 +107,8 @@ def refresh_token():
             }
         )
 
-        token_data = response.json()
+        # parse form-encoded response
+        token_data = dict(parse_qsl(response.text))
 
         if response.status_code != 200:
             return jsonify({
@@ -114,11 +116,29 @@ def refresh_token():
                 "details": token_data
             }), response.status_code
 
-        return jsonify({
-            "access_token": token_data.get("access_token"),
-            "refresh_token": token_data.get("refresh_token"),
+        resp = make_response(jsonify({
+            "success": True,
             "expires_in": token_data.get("expires_in")
-        }), 200
+        }), 200)
+
+        resp.set_cookie(
+            "access_token",
+            token_data.get("access_token"),
+            httponly=True,
+            secure=True,
+            samesite="None",
+            max_age=12*60*60
+        )
+        resp.set_cookie(
+            "refresh_token",
+            token_data.get("refresh_token"),
+            httponly=True,
+            secure=True,
+            samesite="None",
+            max_age=30*24*3600,
+        )
+
+        return resp
 
     except Exception as e:
         return jsonify({
@@ -138,7 +158,7 @@ def get_stats():
         end = data.get("end")
 
         if not token:
-            return jsonify({"error": "Missing token"}), 400
+            return jsonify({"error": "Missing token, need to refresh"}), 401
 
         service = get_wakatime_service()
         session = service.get_session(token)
@@ -260,11 +280,23 @@ def logout():
             },
             headers={"Content-Type": "application/x-www-form-urlencoded"}
         )
-        if response.status_code == 200:
-            return jsonify({"message": "Token revoked successfully"}), 200
-        return jsonify({
-            "error from making wakatime request": response.text
-        }), response.status_code
+        resp = make_response(
+            jsonify(
+                {"message": "Token revoked successfully"}
+                if response.status_code == 200
+                else
+                {"error from making wakatime request": response.text}
+            ),
+            response.status_code
+        )
+
+        resp.set_cookie("access_token", "", httponly=True,
+                        secure=True, samesite="None", max_age=0)
+        resp.set_cookie("refresh_token", "", httponly=True,
+                        secure=True, samesite="None", max_age=0)
+
+        return resp
+
     except Exception as e:
         return jsonify({"error (in python)": str(e)}), 500
 

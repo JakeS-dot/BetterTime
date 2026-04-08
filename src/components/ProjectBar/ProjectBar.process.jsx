@@ -36,7 +36,7 @@ export const processData = (data) => {
       for (let key = 0; key < data.dailyTotals.length; key++) {
         const current = data.dailyTotals[key];
         let pageData = {
-          name: current.range?.text
+          name: current.range?.text,
         };
         let comb = 0;
 

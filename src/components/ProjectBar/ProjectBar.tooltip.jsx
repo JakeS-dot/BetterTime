@@ -1,5 +1,5 @@
 import PropTypes from "prop-types";
-import { secondsToTimestamp } from "../../tools/timeUtils.jsx"
+import { secondsToTimestamp } from "../../tools/timeUtils.jsx";
 
 const ProjectBarTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {

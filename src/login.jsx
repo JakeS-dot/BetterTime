@@ -6,7 +6,6 @@ import {
   fetchUserDataIfNeeded,
   sendLoginApiRequest,
   sendLogOutRequest,
-  getUserData,
 } from "./api/loginApi.jsx";
 import { toast } from "react-toastify";
 
@@ -22,13 +21,13 @@ const Login = () => {
 
       if (code) {
         try {
-          await exchangeCodeForToken(searchParams);
-          fetchUserDataIfNeeded(userData, setCookie, getUserData);
+          await exchangeCodeForToken(searchParams, toast);
+          await fetchUserDataIfNeeded(userData, setCookie, toast);
         } catch (e) {
           toast.error("Authentication failed", e);
         }
-      } else {
-        fetchUserDataIfNeeded(userData, setCookie, getUserData);
+      } else if (userData) {
+        await fetchUserDataIfNeeded(userData, setCookie, toast);
       }
     };
 

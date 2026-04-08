@@ -41,7 +41,7 @@ export class CategoryBar extends React.Component {
               ))}
           </BarChart>
         </ResponsiveContainer>
-        <ResponsiveContainer width="100%" height={120}>
+        <ResponsiveContainer width="100%" height={160}>
           <BarChart data={verticalData} barGap={2}>
             <Tooltip content={<CategoryBarTooltip />} />
             <XAxis dataKey={"name"} tick={false} axisLine={false} />
@@ -66,4 +66,3 @@ export class CategoryBar extends React.Component {
 CategoryBar.propTypes = {
   data: PropTypes.oneOfType([PropTypes.string, PropTypes.object]).isRequired,
 };
-

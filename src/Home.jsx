@@ -6,9 +6,10 @@ import { ProjectBar } from "./components/ProjectBar/ProjectBar.jsx";
 import { ErrorBoundary } from "./ErrorBoundary.jsx";
 import DateRangePanel from "./components/DatePicker/DatePicker.jsx";
 import { handleGetStats } from "./api/getStats.jsx";
-import { getTotalTime } from "./tools/timeUtils.jsx"
-import { useCookies } from "react-cookie"
+import { getTotalTime } from "./tools/timeUtils.jsx";
+import { useCookies } from "react-cookie";
 import { CategoryBar } from "./components/CategoryBar/CategoryBar.jsx";
+import { DurationsChart } from "./components/DurationsChart/DurationsChart.jsx";
 
 const toLocalDateString = (date) => {
   const d = new Date(date);
@@ -25,11 +26,11 @@ export default function Home() {
   const [dateRangeText, setDateRangeText] = useState("Last 7 Days");
   const [showDatePanel, setShowDatePanel] = useState(false);
   const triggerRef = useRef(null);
-  const [userDataCookie] = useCookies(['userData']);
+  const [userDataCookie] = useCookies(["userData"]);
 
   useEffect(() => {
     if (userDataCookie["userData"]) {
-      setLoggedIn(true)
+      setLoggedIn(true);
     }
     // Source - https://stackoverflow.com/a/4944782
     // Posted by David Hedlund
@@ -47,19 +48,24 @@ export default function Home() {
         return d;
       })();
 
-    const endDay = day2 || (() => {
-      const d = new Date();
-      d.setHours(0, 0, 0, 0);
-      return d;
-    })();
+    const endDay =
+      day2 ||
+      (() => {
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        return d;
+      })();
     const range = `${endDay.getFullYear()}-${String(
       endDay.getMonth() + 1,
     ).padStart(2, "0")}`;
     const start = toLocalDateString(startDay);
     const end = toLocalDateString(endDay);
-    loggedIn && handleGetStats(range, start, end, setLoggedIn, toast.error).then((data) => {
-      if (data) setRawJson(data);
-    });
+    loggedIn &&
+      handleGetStats(range, start, end, setLoggedIn, toast.error).then(
+        (data) => {
+          if (data) setRawJson(data);
+        },
+      );
   }, [dates, loggedIn, userDataCookie]);
 
   return (
@@ -67,7 +73,11 @@ export default function Home() {
       <nav className="flex justify-between items-center max-h-[7vh] bg-background-900">
         <h1 className="text-2xl font-bold text-center py-4 m-2">BetterTime</h1>
         <button className="scale-75 bg-accent-600 transition ease-in-out duration-150 active:bg-accent-400 font-bold py-3 px-5 rounded inline-flex items-center hover:bg-accent-500 cursor-pointer">
-          {loggedIn ? <a href="/login">Logged In</a> : <a href="/login">Login</a>}
+          {loggedIn ? (
+            <a href="/login">Logged In</a>
+          ) : (
+            <a href="/login">Login</a>
+          )}
         </button>
       </nav>
 
@@ -96,19 +106,23 @@ export default function Home() {
         </h1>
       </ErrorBoundary>
       <div className="grid grid-cols-2 gap-4 m-2 [&>*]:bg-background-850 [&>*]:p-4 ">
-        <div className="h-[200px]">
+        <div className="h-[220px] p-0 px-4">
           <ErrorBoundary>
-            {rawJson ? <ProjectBar data={rawJson} /> : <div>nodata</div>}
+            {rawJson ? <ProjectBar data={rawJson} /> : <></>}
           </ErrorBoundary>
         </div>
-        <div className="h-[200px]">
+        <div className="h-[220px]">
           <ErrorBoundary>
-            {rawJson ? <CategoryBar data={rawJson} /> : <div>nodata</div>}
+            {rawJson ? <CategoryBar data={rawJson} /> : <></>}
           </ErrorBoundary>
         </div>
+        <div>
+          <ErrorBoundary>
+            {rawJson ? <DurationsChart data={rawJson} /> : <></>}
+          </ErrorBoundary>
+        </div>
+        <div></div>
 
-        <div className="h-[105px]">3</div>
-        <div className="h-[105px]">4</div>
         <div>5</div>
         <div>6</div>
         <div>7</div>

@@ -34,4 +34,3 @@ export function secondsToTimestamp(seconds) {
     .toString()
     .padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
 }
-
